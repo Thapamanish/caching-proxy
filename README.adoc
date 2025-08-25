@@ -1,0 +1,134 @@
+= 🗄️ Caching Proxy Server (Spring Boot CLI)
+:toc:
+:icons: font
+:sectnums:
+
+A lightweight **caching reverse proxy** built with *Spring Boot*. It forwards requests to an **origin server**, caches responses in-memory, and returns `X-Cache: HIT|MISS` headers.
+
+image:https://img.shields.io/badge/Java-17+-blue[Java 17+] 
+image:https://img.shields.io/badge/Spring%20Boot-3.x-green[Spring Boot] 
+image:https://img.shields.io/badge/License-MIT-informational[MIT License]
+
+== ✨ Features
+* Forward requests to a configurable **origin** (e.g., `http://dummyjson.com`)
+* In-memory caching with `ConcurrentHashMap`
+* Adds `X-Cache` response header: **HIT** (served from cache) / **MISS** (fetched and stored)
+* CLI flags: `--port`, `--origin`, `--clear-cache`
+* Minimal dependencies, fast startup, easy to extend
+
+== 🔧 Tech Stack
+* Java 17+
+* Spring Boot 3.x
+* RestTemplate / WebClient
+* ConcurrentHashMap for cache
+
+== 🚀 Quick Start
+
+=== Prerequisites
+* Java 17+
+* Maven 3.9+
+
+=== Build
+[source,bash]
+----
+mvn clean package
+----
+
+=== Run
+1. Start proxy
+[source,bash]
+----
+java -jar target/caching-proxy.jar --port=3000 --origin=http://dummyjson.com
+----
+
+2. Clear cache
+[source,bash]
+----
+java -jar target/caching-proxy.jar --clear-cache
+----
+
+=== Test It
+[source,bash]
+----
+# First run → MISS
+curl -i http://localhost:3000/products | grep X-Cache
+
+# Second run → HIT
+curl -i http://localhost:3000/products | grep X-Cache
+----
+
+Output:
+----
+X-Cache: MISS
+X-Cache: HIT
+----
+
+== ⚙️ CLI Options
+
+[cols="1,1,1,3", options="header"]
+|===
+| Flag          | Type  | Default | Description
+| --port        | int   | 3000    | Port for the proxy server
+| --origin      | url   | —       | Origin base URL (e.g., `http://dummyjson.com`)
+| --clear-cache | bool  | false   | Clears in-memory cache and exits
+|===
+
+TIP: You can also use environment variables (optional) like `PROXY_PORT` and `PROXY_ORIGIN`.
+
+== 🐳 Docker
+
+=== Build
+[source,bash]
+----
+docker build -t caching-proxy:latest .
+----
+
+=== Run
+[source,bash]
+----
+docker run --rm -p 3000:3000 caching-proxy:latest \
+  --port=3000 --origin=http://dummyjson.com
+----
+
+== 📐 How It Works
+
+1. On startup, CLI flags set port & origin.
+2. On request:
+** If cached → return cached body with `X-Cache: HIT`
+** If not cached → forward to origin, store response, return with `X-Cache: MISS`
+3. `--clear-cache` empties cache and exits.
+
+----
+Client → Proxy(Server:3000) → Origin
+        ↑          |
+        └── Cache ─┘
+----
+
+== 📊 Benchmark (optional)
+[source,bash]
+----
+ab -n 200 -c 20 http://localhost:3000/products
+----
+
+Compare first run (MISS heavy) vs repeated run (HIT heavy).
+
+== 🧭 Roadmap
+* [ ] TTL / max-size eviction (LRU)
+* [ ] Cache policies by method/headers
+* [ ] Invalidation endpoint
+* [ ] Metrics (Micrometer/Prometheus)
+* [ ] Redis as optional persistent backend
+
+== 🤝 Contributing
+Pull requests welcome!
+
+1. Fork repo
+2. Create branch
+3. Add tests
+4. Update docs
+
+== 🔐 Security
+Report vulnerabilities via Issues or email.
+
+== 📜 License
+Licensed under the MIT License.
